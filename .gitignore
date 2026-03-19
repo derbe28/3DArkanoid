@@ -1,0 +1,57 @@
+﻿# ======================================
+# Unity generated folders (NEVER commit)
+# ======================================
+
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+
+# Addressables
+ServerData/
+
+# ======================================
+# IDE files
+# ======================================
+
+# Rider / IntelliJ
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# Visual Studio Code
+.vscode/
+
+# Visual Studio
+.vs/
+
+# ======================================
+# Auto-generated project files
+# ======================================
+
+*.csproj
+*.unityproj
+*.sln
+*.user
+*.userprefs
+*.pidb
+*.suo
+*.tmp
+
+# ======================================
+# OS junk
+# ======================================
+
+.DS_Store
+Thumbs.db
+
+# ======================================
+# Crash reports
+# ======================================
+
+sysinfo.txt
