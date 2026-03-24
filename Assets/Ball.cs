@@ -14,6 +14,10 @@ public class Ball : MonoBehaviour
     [Header("Paddle Snap")]
     public float snapOffsetZ = 0.5f;    // How far in front of the paddle the ball sits
 
+    [Header ("Bounce Protection")]
+    public float bounceCooldown = 0.1f;
+    private float lastBounceTime = -1f;
+
     private Vector3 velocity;
     private bool isLaunched = false;
 
@@ -70,28 +74,62 @@ public class Ball : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
+{
+    // Out-check before isLaunched, so the ball is always caught
+    if (other.CompareTag("Out"))
     {
-        if (!isLaunched) return;
+        BallLost();
+        return;
+    }
+
+    if (!isLaunched) return;
+
+    if (other.CompareTag("Paddle"))
+    {
+        BounceOffPaddle(other);
+    }
+    else if (other.CompareTag("Block"))
+    {
         
-        if (other.CompareTag("Paddle"))
+        // Prevent multiple bounces in a short time
+        if (Time.time - lastBounceTime < bounceCooldown) return;
+        lastBounceTime = Time.time;
+        // Find ALL blocks in a small radius around the ball at once
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.6f);
+        BounceOffBlock(other);
+
+        Vector3 totalOffset = Vector3.zero;
+        int blockCount = 0;
+
+        foreach (Collider hitCol in hitColliders)
         {
-            BounceOffPaddle(other);
-        }
-        else if (other.CompareTag("Block"))
-        {
-            BounceOffBlock(other);
-            
-            Block block = other.GetComponent<Block>();
+            if (!hitCol.CompareTag("Block")) continue;
+
+            // Deal damage to every block in range
+            Block block = hitCol.GetComponent<Block>();
             if (block != null)
                 block.TakeHit();
+
+            // Accumulate offset direction from each block's center
+            totalOffset += transform.position - hitCol.bounds.center;
+            blockCount++;
         }
-        else if (other.CompareTag("Out"))
+
+        // Bounce based on the combined offset of all hit blocks
+        if (blockCount > 0)
         {
-            BallLost();
-            ResetBall();
-            SnapToPaddle( other.transform.position);
+            Vector3 avgOffset = totalOffset / blockCount;
+
+            float overlapX = Mathf.Abs(avgOffset.x);
+            float overlapZ = Mathf.Abs(avgOffset.z);
+
+            if (overlapX > overlapZ)
+                velocity.x = -velocity.x;
+            else
+                velocity.z = -velocity.z;
         }
     }
+}
 
     private void BounceOffPaddle(Collider paddle)
     {

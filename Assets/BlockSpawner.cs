@@ -12,10 +12,9 @@ public class BlockSpawner : MonoBehaviour
     public float centerX  = 0.0f;
 
     // PATTERN: edit this to change the block layout.
-    // Row 0 = bottom row, last row = top row.
     private string[] pattern = new string[]
     {
-        "011110",   // row 0
+        "011110",   // row 0 (Bottom)
         "011110",   // row 1
         "122221",   // row 2
         "123321",   // row 3
@@ -24,7 +23,7 @@ public class BlockSpawner : MonoBehaviour
         "123321",   // row 6
         "122221",   // row 7
         "011110",   // row 8
-        "011110",   // row 9
+        "011110",   // row 9 (Top)
     };
 
     void Start()
