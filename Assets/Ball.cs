@@ -3,59 +3,112 @@ using UnityEngine;
 public class Ball : MonoBehaviour
 {
     [Header("Speed")]
-    public float speed = 8f;            // Overall ball speed
+    public float speed = 8f;
 
     [Header("Wall Boundaries")]
-    // These should match your actual wall positions in the scene
-    public float leftBound  = -4.75f;   // X position of the left wall
-    public float rightBound =  4.75f;   // X position of the right wall
-    public float topBound   =  7.25f;   // Z position of the top wall
+    public float leftBound = -4.75f;
+    public float rightBound = 4.75f;
+    public float topBound = 7.25f;
 
     [Header("Paddle Snap")]
-    public float snapOffsetZ = 0.5f;    // How far in front of the paddle the ball sits
+    public float snapOffsetZ = 0.5f;
 
-    [Header ("Bounce Protection")]
-    public float bounceCooldown = 0.1f;
-    private float lastBounceTime = -1f;
+    [Header("Ball Size")]
+    public float ballRadius = 0.25f;
 
     private Vector3 velocity;
     private bool isLaunched = false;
+    private Vector3 previousPosition;
 
     void Update()
     {
-        if (!isLaunched) return;
+        if (!isLaunched)
+            return;
+
+        previousPosition = transform.position;
+
         transform.position += velocity * Time.deltaTime;
-        BounceOffWalls();
+
+        CheckWallCollision();
+        CheckBlockCollision();
     }
-    
-    private void BounceOffWalls()
+
+    private void CheckWallCollision()
     {
         Vector3 pos = transform.position;
 
         // Left wall
-        if (pos.x <= leftBound)
+        if (pos.x - ballRadius <= leftBound)
         {
-            pos.x = leftBound;
-            velocity.x = Mathf.Abs(velocity.x);    // Force direction to the right
-            transform.position = pos;
+            pos.x = leftBound + ballRadius;
+            velocity.x = Mathf.Abs(velocity.x);
         }
+
         // Right wall
-        else if (pos.x >= rightBound)
+        if (pos.x + ballRadius >= rightBound)
         {
-            pos.x = rightBound;
-            velocity.x = -Mathf.Abs(velocity.x);   // Force direction to the left
-            transform.position = pos;
+            pos.x = rightBound - ballRadius;
+            velocity.x = -Mathf.Abs(velocity.x);
         }
 
         // Top wall
-        if (pos.z >= topBound)
+        if (pos.z + ballRadius >= topBound)
         {
-            pos.z = topBound;
-            velocity.z = -Mathf.Abs(velocity.z);   // Force direction downward
-            transform.position = pos;
+            pos.z = topBound - ballRadius;
+            velocity.z = -Mathf.Abs(velocity.z);
+        }
+
+        transform.position = pos;
+    }
+
+    private void CheckBlockCollision()
+    {
+        Collider[] hits = Physics.OverlapSphere(
+            transform.position,
+            ballRadius,
+            Physics.AllLayers,
+            QueryTriggerInteraction.Collide
+        );
+
+        foreach (Collider hit in hits)
+        {
+            if (!hit.CompareTag("Block"))
+                continue;
+
+            Bounds blockBounds = hit.bounds;
+
+            // Put the ball back to the last safe position
+            transform.position = previousPosition;
+
+            // Calculate overlap in X and Z
+            float overlapLeft = Mathf.Abs((previousPosition.x + ballRadius) - blockBounds.min.x);
+            float overlapRight = Mathf.Abs((blockBounds.max.x) - (previousPosition.x - ballRadius));
+            float overlapX = Mathf.Min(overlapLeft, overlapRight);
+
+            float overlapBottom = Mathf.Abs((previousPosition.z + ballRadius) - blockBounds.min.z);
+            float overlapTop = Mathf.Abs((blockBounds.max.z) - (previousPosition.z - ballRadius));
+            float overlapZ = Mathf.Min(overlapBottom, overlapTop);
+
+            // Smaller overlap tells us which side was hit
+            if (overlapX < overlapZ)
+            {
+                velocity.x = -velocity.x;
+            }
+            else
+            {
+                velocity.z = -velocity.z;
+            }
+
+            Block block = hit.GetComponent<Block>();
+            if (block != null)
+            {
+                block.TakeHit();
+            }
+
+            break;
         }
     }
-    
+
     public void SnapToPaddle(Vector3 paddlePosition)
     {
         transform.position = new Vector3(
@@ -68,68 +121,29 @@ public class Ball : MonoBehaviour
     public void Launch()
     {
         isLaunched = true;
+
         float randomX = Random.Range(-0.5f, 0.5f);
         Vector3 direction = new Vector3(randomX, 0f, 1f).normalized;
+
         velocity = direction * speed;
     }
 
     private void OnTriggerEnter(Collider other)
-{
-    // Out-check before isLaunched, so the ball is always caught
-    if (other.CompareTag("Out"))
     {
-        BallLost();
-        return;
-    }
-
-    if (!isLaunched) return;
-
-    if (other.CompareTag("Paddle"))
-    {
-        BounceOffPaddle(other);
-    }
-    else if (other.CompareTag("Block"))
-    {
-        
-        // Prevent multiple bounces in a short time
-        if (Time.time - lastBounceTime < bounceCooldown) return;
-        lastBounceTime = Time.time;
-        // Find ALL blocks in a small radius around the ball at once
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, 0.6f);
-        BounceOffBlock(other);
-
-        Vector3 totalOffset = Vector3.zero;
-        int blockCount = 0;
-
-        foreach (Collider hitCol in hitColliders)
+        if (other.CompareTag("Out"))
         {
-            if (!hitCol.CompareTag("Block")) continue;
-
-            // Deal damage to every block in range
-            Block block = hitCol.GetComponent<Block>();
-            if (block != null)
-                block.TakeHit();
-
-            // Accumulate offset direction from each block's center
-            totalOffset += transform.position - hitCol.bounds.center;
-            blockCount++;
+            BallLost();
+            return;
         }
 
-        // Bounce based on the combined offset of all hit blocks
-        if (blockCount > 0)
+        if (!isLaunched)
+            return;
+
+        if (other.CompareTag("Paddle"))
         {
-            Vector3 avgOffset = totalOffset / blockCount;
-
-            float overlapX = Mathf.Abs(avgOffset.x);
-            float overlapZ = Mathf.Abs(avgOffset.z);
-
-            if (overlapX > overlapZ)
-                velocity.x = -velocity.x;
-            else
-                velocity.z = -velocity.z;
+            BounceOffPaddle(other);
         }
     }
-}
 
     private void BounceOffPaddle(Collider paddle)
     {
@@ -144,30 +158,17 @@ public class Ball : MonoBehaviour
         velocity = new Vector3(newX, 0f, newZ) * speed;
     }
 
-    private void BounceOffBlock(Collider block)
-    {
-        Bounds b = block.bounds;
- 
-        Vector3 offset = transform.position - b.center;
- 
-        float overlapX = Mathf.Abs(offset.x) / (b.size.x / 2f);
-        float overlapZ = Mathf.Abs(offset.z) / (b.size.z / 2f);
- 
-        if (overlapX > overlapZ)
-            velocity.x = -velocity.x;
-        else
-            velocity.z = -velocity.z;
-    }
-
     private void BallLost()
     {
         isLaunched = false;
         velocity = Vector3.zero;
 
         if (GameManager.Instance != null)
+        {
             GameManager.Instance.OnBallLost(this);
+        }
     }
-    
+
     public void ResetBall()
     {
         isLaunched = false;
