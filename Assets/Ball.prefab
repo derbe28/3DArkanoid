@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 4565250983061345222}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.25, z: -6.775}
+  m_LocalPosition: {x: 0, y: 0.25, z: -4.175}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -126,3 +126,4 @@ MonoBehaviour:
   rightBound: 4.75
   topBound: 7.25
   snapOffsetZ: 0.5
+  ballRadius: 0.25
