@@ -215,6 +215,8 @@ public class Ball : MonoBehaviour
         // Tell BallManager this ball is gone – it decides whether to lose a life
         if (BallManager.instance != null)
             BallManager.instance.UnregisterBall(this);
+        
+        Debug.Log("Ball Lost");
 
         Destroy(gameObject);
     }

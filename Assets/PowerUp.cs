@@ -17,7 +17,7 @@ public class PowerUp : MonoBehaviour
     [Tooltip("How fast the power-up falls toward the paddle")]
     public float fallSpeed = 3f;
 
-    [Tooltip("How long the effect lasts in seconds (not used by MultiBall)")]
+    [Tooltip("How long the effect lasts in seconds (not used by MultiBall and BulldozerBall)")]
     public float duration = 8f;
 
     void Update()
