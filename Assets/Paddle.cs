@@ -13,29 +13,33 @@ public class Paddle : MonoBehaviour
 
     [Header("Ball")]
     public Ball ball;
-    
-    private Vector2 inputDir;   // Current keyboard direction from Input Actions
-    private bool isBallAttached = true;
 
-    private Playerinput inputActions;
+    private Vector2 _inputDir;       // Current keyboard direction from Input Actions
+    private bool _isBallAttached = true;
+
+    // Stores the original X scale so SetWidth can always scale relative to it
+    private float _baseScaleX;
+
+    private Playerinput _inputActions;
 
     void Awake()
     {
-        inputActions = new Playerinput();
+        _inputActions = new Playerinput();
+        _baseScaleX   = transform.localScale.x;
     }
 
     void OnEnable()
     {
-        inputActions.Keyboard.Enable();
+        _inputActions.Keyboard.Enable();
         // When a key is held: store direction
-        inputActions.Keyboard.KeyboardInput.performed += ctx => inputDir = ctx.ReadValue<Vector2>();
+        _inputActions.Keyboard.KeyboardInput.performed += ctx => _inputDir = ctx.ReadValue<Vector2>();
         // When key is released: reset to zero
-        inputActions.Keyboard.KeyboardInput.canceled  += ctx => inputDir = Vector2.zero;
+        _inputActions.Keyboard.KeyboardInput.canceled  += ctx => _inputDir = Vector2.zero;
     }
 
     void OnDisable()
     {
-        inputActions.Keyboard.Disable();
+        _inputActions.Keyboard.Disable();
     }
 
     void Update()
@@ -44,13 +48,14 @@ public class Paddle : MonoBehaviour
         MoveWithMouse();
         ClampPosition();
 
-        if (isBallAttached)
+        if (_isBallAttached)
         {
+            if (ball == null) return;
             ball.SnapToPaddle(transform.position);
 
-            if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+            if (Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame) | (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame))
             {
-                isBallAttached = false;
+                _isBallAttached = false;
                 ball.Launch();
             }
         }
@@ -58,7 +63,7 @@ public class Paddle : MonoBehaviour
 
     private void MoveWithKeyboard()
     {
-        transform.position += new Vector3(inputDir.x * keyboardSpeed, 0f, 0f);
+        transform.position += new Vector3(_inputDir.x * keyboardSpeed, 0f, 0f);
     }
 
     private void MoveWithMouse()
@@ -68,8 +73,8 @@ public class Paddle : MonoBehaviour
         float mouseDelta = Mouse.current.delta.x.ReadValue();
         transform.position += new Vector3(mouseDelta * mouseSensitivity, 0f, 0f);
     }
-    
-    // Clamps the paddle so it never goes past the side walls.
+
+    // Clamps the paddle so it never goes past the side walls
     private void ClampPosition()
     {
         float clampedX = Mathf.Clamp(transform.position.x, minX, maxX);
@@ -79,6 +84,14 @@ public class Paddle : MonoBehaviour
     public void AttachBall(Ball ballToAttach)
     {
         ball = ballToAttach;
-        isBallAttached = true;
+        _isBallAttached = true;
+    }
+
+    // Called by the WidePaddle power-up.
+    // widthMultiplier = 2 → double width, 1 → back to normal
+    public void SetWidth(float widthMultiplier)
+    {
+        Vector3 s = transform.localScale;
+        transform.localScale = new Vector3(_baseScaleX * widthMultiplier, s.y, s.z);
     }
 }

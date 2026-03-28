@@ -7,7 +7,14 @@ public class Block : MonoBehaviour
     [Range(1, 4)]
     public int health = 1;
 
-    private MeshRenderer meshRenderer;
+    [Header("Power-Up Drop")]
+    public GameObject[] powerUpPrefabs;
+
+    [Tooltip("Probability (0 = never, 1 = always) that this block drops a power-up")]
+    [Range(0f, 1f)]
+    public float dropChance = 0.25f;
+
+    private MeshRenderer _meshRenderer;
 
     // Color for each health level
     private static readonly Color ColorRed    = new Color(0.9f, 0.15f, 0.15f);
@@ -17,7 +24,7 @@ public class Block : MonoBehaviour
 
     void Awake()
     {
-        meshRenderer = GetComponent<MeshRenderer>();
+        _meshRenderer = GetComponent<MeshRenderer>();
         UpdateColor();
     }
 
@@ -27,8 +34,11 @@ public class Block : MonoBehaviour
 
         if (health <= 0)
         {
-            if (GameManager.Instance != null)
-                GameManager.Instance.AddScore(10);
+            if (GameManager.instance != null)
+                GameManager.instance.AddScore(10);
+
+            // Try to drop a power-up before the block is destroyed
+            TryDropPowerUp();
 
             Destroy(gameObject);
         }
@@ -44,16 +54,28 @@ public class Block : MonoBehaviour
         UpdateColor();
     }
 
+    // Rolls the dice and spawns a power-up if the roll succeeds
+    private void TryDropPowerUp()
+    {
+        if (powerUpPrefabs == null || powerUpPrefabs.Length == 0) return;
+
+        if (Random.value <= dropChance)
+        {
+            int index = Random.Range(0, powerUpPrefabs.Length);
+            Instantiate(powerUpPrefabs[index], transform.position, Quaternion.identity);
+        }
+    }
+
     private void UpdateColor()
     {
-        if (meshRenderer == null) return;
+        if (_meshRenderer == null) return;
 
         switch (health)
         {
-            case 4: meshRenderer.material.color = ColorRed;    break;
-            case 3: meshRenderer.material.color = ColorOrange; break;
-            case 2: meshRenderer.material.color = ColorYellow; break;
-            default:meshRenderer.material.color = ColorGreen;  break;
+            case 4:  _meshRenderer.material.color = ColorRed;    break;
+            case 3:  _meshRenderer.material.color = ColorOrange; break;
+            case 2:  _meshRenderer.material.color = ColorYellow; break;
+            default: _meshRenderer.material.color = ColorGreen;  break;
         }
     }
 }

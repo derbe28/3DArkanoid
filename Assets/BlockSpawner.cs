@@ -9,10 +9,10 @@ public class BlockSpawner : MonoBehaviour
     public float spacingX = 1.6f;
     public float spacingZ = 0.8f;
     public float startZ   = 2.5f;
-    public float centerX  = 0.0f;
+    public float centerX;
 
     // PATTERN: edit this to change the block layout.
-    private string[] pattern = new string[]
+    private readonly string[] _pattern = new string[]
     {
         "011110",   // row 0 (Bottom)
         "011110",   // row 1
@@ -40,8 +40,8 @@ public class BlockSpawner : MonoBehaviour
             return;
         }
 
-        int rowCount = pattern.Length;
-        int colCount = pattern[0].Length;
+        int rowCount = _pattern.Length;
+        int colCount = _pattern[0].Length;
 
         // Calculate the X offset to center the grid around centerX
         float totalWidth = (colCount - 1) * spacingX;
@@ -51,7 +51,7 @@ public class BlockSpawner : MonoBehaviour
         {
             for (int col = 0; col < colCount; col++)
             {
-                char cell = pattern[row][col];
+                char cell = _pattern[row][col];
 
                 // '0' means no block here
                 if (cell == '0') continue;
