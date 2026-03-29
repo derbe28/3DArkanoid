@@ -28,7 +28,6 @@ public class PowerUp : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Paddle catches the power-up → activate it
         if (other.CompareTag("Paddle"))
         {
             GameManager.instance.ActivatePowerUp(type, duration);
@@ -36,7 +35,6 @@ public class PowerUp : MonoBehaviour
             return;
         }
 
-        // Fell past the paddle into the Out zone → just remove it
         if (other.CompareTag("Out"))
         {
             Destroy(gameObject);

@@ -1,11 +1,10 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
 public class PauseMenu : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject pausePanel;
+    public GameObject PausePanel;
 
     private bool _isPaused = false;
 
@@ -23,7 +22,7 @@ public class PauseMenu : MonoBehaviour
     private void PauseGame()
     {
         _isPaused = true;
-        pausePanel.SetActive(true);
+        PausePanel.SetActive(true);
         Time.timeScale = 0f;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
@@ -32,17 +31,9 @@ public class PauseMenu : MonoBehaviour
     public void ResumeGame()
     {
         _isPaused = false;
-        pausePanel.SetActive(false);
+        PausePanel.SetActive(false);
         Time.timeScale = 1f;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Confined;
-    }
-
-    public void ExitGame()
-    {
-        Time.timeScale = 1f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-        SceneManager.LoadScene("MainMenu");
     }
 }

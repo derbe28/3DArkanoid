@@ -16,7 +16,6 @@ public class Block : MonoBehaviour
 
     private MeshRenderer _meshRenderer;
 
-    // Color for each health level
     private static readonly Color ColorRed    = new Color(0.9f, 0.15f, 0.15f);
     private static readonly Color ColorOrange = new Color(1.0f, 0.50f, 0.00f);
     private static readonly Color ColorYellow = new Color(1.0f, 0.90f, 0.10f);
@@ -26,6 +25,10 @@ public class Block : MonoBehaviour
     {
         _meshRenderer = GetComponent<MeshRenderer>();
         UpdateColor();
+
+        // Tell GameManager this block exists so it can track the remaining count
+        if (GameManager.instance != null)
+            GameManager.instance.RegisterBlock();
     }
 
     public void TakeHit()
@@ -34,11 +37,15 @@ public class Block : MonoBehaviour
 
         if (health <= 0)
         {
+            // Add score before unregistering so the win check fires after the score is updated
             if (GameManager.instance != null)
                 GameManager.instance.AddScore(10);
 
-            // Try to drop a power-up before the block is destroyed
             TryDropPowerUp();
+
+            // Tell GameManager this block is gone – may trigger the win condition
+            if (GameManager.instance != null)
+                GameManager.instance.UnregisterBlock();
 
             Destroy(gameObject);
         }
@@ -54,7 +61,6 @@ public class Block : MonoBehaviour
         UpdateColor();
     }
 
-    // Rolls the dice and spawns a power-up if the roll succeeds
     private void TryDropPowerUp()
     {
         if (powerUpPrefabs == null || powerUpPrefabs.Length == 0) return;

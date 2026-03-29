@@ -1,16 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-
-// UIManager reads state from GameManager every frame and updates all HUD elements.
-// Attach this script to an empty GameObject called "UIManager".
-// Then drag the matching UI objects from the Hierarchy into each Inspector field.
 public class UIManager : MonoBehaviour
 {
-    // ---------------------------------------------------------------
-    // Inspector fields – drag the matching UI objects here in Unity
-    // ---------------------------------------------------------------
-
     [Header("Left Panel – Timer (top)")]
     public TMP_Text timerText;
 
@@ -23,19 +15,10 @@ public class UIManager : MonoBehaviour
 
     [Header("Right Panel – Combo")]
     public TMP_Text comboText;
-    // Optional: an Image (Image Type = Filled) that shows progress to the next combo tier
     public Image comboFillBar;
 
-    // ---------------------------------------------------------------
-    // Private state
-    // ---------------------------------------------------------------
-
-    // Only rebuild the lives display when the count actually changes
     private int _lastLivesDisplayed = -1;
 
-    // ---------------------------------------------------------------
-    // Unity lifecycle
-    // ---------------------------------------------------------------
     void Update()
     {
         if (GameManager.instance == null) return;
@@ -46,9 +29,6 @@ public class UIManager : MonoBehaviour
         UpdateCombo();
     }
 
-    // ---------------------------------------------------------------
-    // Timer – MM:SS format, counts up
-    // ---------------------------------------------------------------
     private void UpdateTimer()
     {
         if (timerText == null) return;
@@ -60,10 +40,6 @@ public class UIManager : MonoBehaviour
         timerText.text = $"{min:00}:{sec:00}";
     }
 
-    // ---------------------------------------------------------------
-    // Lives – filled hearts for remaining lives, dark hearts for lost ones
-    // Rebuilds only when the count changes, not every frame
-    // ---------------------------------------------------------------
     private void UpdateLives()
     {
         if (livesText == null) return;
@@ -86,18 +62,12 @@ public class UIManager : MonoBehaviour
         livesText.text = sb.ToString();
     }
 
-    // ---------------------------------------------------------------
-    // Score & highscore – always 6 digits with leading zeros
-    // ---------------------------------------------------------------
     private void UpdateScore()
     {
         if (scoreText     != null) scoreText.text     = GameManager.instance.score.ToString("D6");
         if (highscoreText != null) highscoreText.text = GameManager.instance.highscore.ToString("D6");
     }
 
-    // ---------------------------------------------------------------
-    // Combo multiplier – text color changes with the multiplier level
-    // ---------------------------------------------------------------
     private void UpdateCombo()
     {
         if (comboText == null) return;
@@ -116,7 +86,6 @@ public class UIManager : MonoBehaviour
             _ => Color.white,                      // white  – x1
         };
 
-        // Optional fill bar: shows progress toward the next combo tier
         if (comboFillBar != null)
         {
             // Thresholds must match the ones defined in GameManager

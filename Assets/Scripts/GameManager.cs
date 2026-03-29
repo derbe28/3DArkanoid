@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,29 +11,30 @@ public class GameManager : MonoBehaviour
     public Paddle      paddle;
     public BallManager ballManager;
 
+    [Header("UI Screens")]
+    public GameOverScreen gameOverScreen;
+    public WinScreen winScreen;
+
     [Header("Settings")]
     public int startingLives = 3;
 
-    // ---------------------------------------------------------------
-    // Public read-only game state – UIManager reads these every frame
-    // ---------------------------------------------------------------
     public int   lives       { get; private set; }
     public int   score       { get; private set; }
     public int   highscore   { get; private set; }
     public float sessionTime { get; private set; }
     public int   combo       { get; private set; }
 
-    // Key used to save the highscore between play sessions
+    // Tracks how many blocks are still alive on the field
+    private int _remainingBlocks = 0;
+
+    // True while a game-ending screen is shown – stops the session timer
+    private bool _gameEnded = false;
+
     private const string HighscoreKey = "Arkanoid_Highscore";
 
-    // Combo thresholds and their matching score multipliers
-    // Example: 10 blocks in a row → every block gives x3 points
     private static readonly int[] ComboThresholds  = { 0, 5, 10, 20 };
     private static readonly int[] ComboMultipliers = { 1, 2,  3,  4 };
-
-    // ---------------------------------------------------------------
-    // Unity lifecycle
-    // ---------------------------------------------------------------
+    
     void Awake()
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
@@ -43,10 +45,15 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        Time.timeScale = 1f;
+        
         lives       = startingLives;
         score       = 0;
         combo       = 0;
         sessionTime = 0f;
+        _gameEnded  = false;
 
         if (paddle != null && paddle.ball != null)
             ballManager.RegisterBall(paddle.ball);
@@ -54,37 +61,47 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        sessionTime += Time.deltaTime;
+        if (!_gameEnded)
+            sessionTime += Time.deltaTime;
     }
 
-    // ---------------------------------------------------------------
+    // Block.cs calls this in Awake() so we always know the total count
+    public void RegisterBlock()
+    {
+        _remainingBlocks++;
+    }
+
+    // Block.cs calls this just before Destroy(gameObject)
+    public void UnregisterBlock()
+    {
+        _remainingBlocks--;
+
+        // If no blocks remain the player has cleared the level
+        if (_remainingBlocks <= 0)
+            TriggerWin();
+    }
+
     // Called by BallManager when every active ball has been lost
-    // ---------------------------------------------------------------
     public void OnAllBallsLost()
     {
         lives--;
-        combo = 0; // losing all balls resets the combo streak
+        combo = 0;
 
         Debug.Log($"Life lost! Lives remaining: {lives}");
 
         if (lives <= 0)
-        {
-            Debug.Log("GAME OVER");
-            // TODO: Show Game Over screen
-        }
+            TriggerGameOver();
         else
         {
-            // Spawn a fresh ball and attach it to the paddle
-            GameObject obj = Instantiate(ballManager.ballPrefab, paddle.transform.position, Quaternion.identity);
+            GameObject obj = Instantiate(ballManager.ballPrefab,
+                                         paddle.transform.position, Quaternion.identity);
             Ball newBall   = obj.GetComponent<Ball>();
             ballManager.RegisterBall(newBall);
             paddle.AttachBall(newBall);
         }
     }
 
-    // ---------------------------------------------------------------
-    // Called by Block.cs when a block is destroyed
-    // ---------------------------------------------------------------
+    // Score
     public void AddScore(int basePoints)
     {
         int multiplier = GetComboMultiplier();
@@ -93,7 +110,6 @@ public class GameManager : MonoBehaviour
         score += earned;
         combo++;
 
-        // Save a new highscore immediately so it survives an unexpected quit
         if (score > highscore)
         {
             highscore = score;
@@ -104,7 +120,6 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Score: {score}  |  Combo: {combo}  |  x{multiplier}");
     }
 
-    // Returns the score multiplier for the current combo count
     public int GetComboMultiplier()
     {
         for (int i = ComboThresholds.Length - 1; i >= 0; i--)
@@ -115,9 +130,55 @@ public class GameManager : MonoBehaviour
         return 1;
     }
 
-    // ---------------------------------------------------------------
+    // Game-ending states
+    private void TriggerGameOver()
+    {
+        if (_gameEnded) return;
+        _gameEnded = true;
+
+        Debug.Log("GAME OVER");
+
+        // Show cursor so the player can click the buttons
+        Cursor.visible   = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        if (gameOverScreen != null)
+            gameOverScreen.Show(score, highscore);
+        else
+            Debug.LogWarning("[GameManager] gameOverScreen is not assigned!");
+    }
+
+    private void TriggerWin()
+    {
+        if (_gameEnded) return;
+        _gameEnded = true;
+
+        Debug.Log("YOU WIN!");
+
+        Cursor.visible   = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        if (winScreen != null)
+            winScreen.Show(score, highscore);
+        else
+            Debug.LogWarning("[GameManager] winScreen is not assigned!");
+    }
+
+    // Reloads the current scene (Retry)
+    public void RestartGame()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    // Loads the main menu scene
+    public void GoToMainMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MainMenu");
+    }
+
     // Power-up activation – called by PowerUp.cs via OnTriggerEnter
-    // ---------------------------------------------------------------
     public void ActivatePowerUp(PowerUpType type, float duration)
     {
         switch (type)
@@ -132,7 +193,6 @@ public class GameManager : MonoBehaviour
                 ballManager.SpawnExtraBalls();
                 break;
             case PowerUpType.BulldozerBall:
-                // Ball.cs disables bulldozer mode automatically on top-wall hit
                 ballManager.SetBulldozerMode(true);
                 break;
         }
@@ -140,7 +200,6 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] PowerUp activated: {type} for {duration}s");
     }
 
-    // Widens the paddle for 'duration' seconds, then resets it to normal
     private IEnumerator WidePaddleRoutine(float duration)
     {
         paddle.SetWidth(2f);
@@ -148,11 +207,34 @@ public class GameManager : MonoBehaviour
         paddle.SetWidth(1f);
     }
 
-    // Slows all balls for 'duration' seconds, then restores normal speed
     private IEnumerator SlowBallRoutine(float duration)
     {
         ballManager.SetAllBallSpeedMultiplier(0.5f);
         yield return new WaitForSeconds(duration);
         ballManager.SetAllBallSpeedMultiplier(1f);
+    }
+    
+    // Called by the ExitGame button on the GameOver and Win screens
+    public void ExitGame()
+    {
+        Time.timeScale = 1f;
+        Cursor.visible   = true;
+        Cursor.lockState = CursorLockMode.None;
+
+    #if UNITY_EDITOR
+        ResetHighscore();
+        UnityEditor.EditorApplication.isPlaying = false;
+    #else
+        ResetHighscore();
+        Application.Quit();
+    #endif
+    }
+    
+    // Resets the saved highscore – call this from a button in your settings or pause menu
+    public void ResetHighscore()
+    {
+        highscore = 0;
+        PlayerPrefs.SetInt(HighscoreKey, 0);
+        PlayerPrefs.Save();
     }
 }
