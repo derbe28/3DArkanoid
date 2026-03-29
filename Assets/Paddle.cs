@@ -17,15 +17,15 @@ public class Paddle : MonoBehaviour
     private Vector2 _inputDir;       // Current keyboard direction from Input Actions
     private bool _isBallAttached = true;
 
-    // Stores the original X scale so SetWidth can always scale relative to it
-    private float _baseScaleX;
+    // Stores the original Z scale so SetWidth can always scale relative to it
+    private float _baseScaleY;
 
     private Playerinput _inputActions;
 
     void Awake()
     {
         _inputActions = new Playerinput();
-        _baseScaleX   = transform.localScale.x;
+        _baseScaleY   = transform.localScale.y;
     }
 
     void OnEnable()
@@ -63,12 +63,14 @@ public class Paddle : MonoBehaviour
 
     private void MoveWithKeyboard()
     {
+        if (Time.timeScale == 0f) return;
         transform.position += new Vector3(_inputDir.x * keyboardSpeed, 0f, 0f);
     }
 
     private void MoveWithMouse()
     {
         if (Mouse.current == null) return;
+        if (Time.timeScale == 0f) return;
 
         float mouseDelta = Mouse.current.delta.x.ReadValue();
         transform.position += new Vector3(mouseDelta * mouseSensitivity, 0f, 0f);
@@ -77,7 +79,8 @@ public class Paddle : MonoBehaviour
     // Clamps the paddle so it never goes past the side walls
     private void ClampPosition()
     {
-        float clampedX = Mathf.Clamp(transform.position.x, minX, maxX);
+        float halfWidth = transform.localScale.y * 0.5f;
+        float clampedX = Mathf.Clamp(transform.position.x, minX + halfWidth, maxX - halfWidth);
         transform.position = new Vector3(clampedX, transform.position.y, transform.position.z);
     }
 
@@ -92,6 +95,6 @@ public class Paddle : MonoBehaviour
     public void SetWidth(float widthMultiplier)
     {
         Vector3 s = transform.localScale;
-        transform.localScale = new Vector3(_baseScaleX * widthMultiplier, s.y, s.z);
+        transform.localScale = new Vector3(s.x, _baseScaleY * widthMultiplier, s.z);
     }
 }
