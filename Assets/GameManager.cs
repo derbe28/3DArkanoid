@@ -9,25 +9,24 @@ public class GameManager : MonoBehaviour
     [Header("References")]
     public Paddle      paddle;
     public BallManager ballManager;
-    public UIManager   uiManager;   // drag the UIManager GameObject here
 
     [Header("Settings")]
     public int startingLives = 3;
 
     // ---------------------------------------------------------------
-    // Public read-only game state  –  UIManager reads these every frame
+    // Public read-only game state – UIManager reads these every frame
     // ---------------------------------------------------------------
     public int   lives       { get; private set; }
     public int   score       { get; private set; }
     public int   highscore   { get; private set; }
-    public float sessionTime { get; private set; }  // seconds elapsed since Start
-    public int   combo       { get; private set; }  // consecutive block hits without losing the ball
+    public float sessionTime { get; private set; }
+    public int   combo       { get; private set; }
 
-    // Key used to save the highscore via PlayerPrefs (persists between sessions)
+    // Key used to save the highscore between play sessions
     private const string HighscoreKey = "Arkanoid_Highscore";
 
-    // Combo thresholds and their matching score multipliers.
-    // Example: 10 blocks in a row -> every block gives x3 points.
+    // Combo thresholds and their matching score multipliers
+    // Example: 10 blocks in a row → every block gives x3 points
     private static readonly int[] ComboThresholds  = { 0, 5, 10, 20 };
     private static readonly int[] ComboMultipliers = { 1, 2,  3,  4 };
 
@@ -38,31 +37,23 @@ public class GameManager : MonoBehaviour
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
+
         highscore = PlayerPrefs.GetInt(HighscoreKey, 0);
-        lives       = startingLives;
-        score       = 0;
-        combo       = 0;
-        sessionTime = 0f;
     }
 
     void Start()
     {
-        // Activate Fullscreen
-        Screen.fullScreen = true;
-        Screen.fullScreenMode = FullScreenMode.FullScreenWindow;
+        lives       = startingLives;
+        score       = 0;
+        combo       = 0;
+        sessionTime = 0f;
 
-        // Mouse visibility
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Confined;
-
-        // Register the starting ball so BallManager knows about it
         if (paddle != null && paddle.ball != null)
             ballManager.RegisterBall(paddle.ball);
     }
 
     void Update()
     {
-        // Increment the session timer every frame
         sessionTime += Time.deltaTime;
     }
 
@@ -84,8 +75,7 @@ public class GameManager : MonoBehaviour
         else
         {
             // Spawn a fresh ball and attach it to the paddle
-            GameObject obj = Instantiate(ballManager.ballPrefab,
-                                         paddle.transform.position, Quaternion.identity);
+            GameObject obj = Instantiate(ballManager.ballPrefab, paddle.transform.position, Quaternion.identity);
             Ball newBall   = obj.GetComponent<Ball>();
             ballManager.RegisterBall(newBall);
             paddle.AttachBall(newBall);
@@ -114,7 +104,7 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Score: {score}  |  Combo: {combo}  |  x{multiplier}");
     }
 
-    // Returns the score multiplier that matches the current combo count
+    // Returns the score multiplier for the current combo count
     public int GetComboMultiplier()
     {
         for (int i = ComboThresholds.Length - 1; i >= 0; i--)
@@ -126,7 +116,7 @@ public class GameManager : MonoBehaviour
     }
 
     // ---------------------------------------------------------------
-    // Power-up activation  –  called by PowerUp.cs via OnTriggerEnter
+    // Power-up activation – called by PowerUp.cs via OnTriggerEnter
     // ---------------------------------------------------------------
     public void ActivatePowerUp(PowerUpType type, float duration)
     {
@@ -134,26 +124,16 @@ public class GameManager : MonoBehaviour
         {
             case PowerUpType.WidePaddle:
                 StartCoroutine(WidePaddleRoutine(duration));
-                // Show a timed entry in the powerup panel
-                uiManager?.AddPowerupEntry("Wide Paddle", duration);
                 break;
-
             case PowerUpType.SlowBall:
                 StartCoroutine(SlowBallRoutine(duration));
-                uiManager?.AddPowerupEntry("Slow Ball", duration);
                 break;
-
             case PowerUpType.MultiBall:
-                // No duration – extra balls stay until they fall out
                 ballManager.SpawnExtraBalls();
-                // Pass -1 so the UI entry has no countdown timer
-                uiManager?.AddPowerupEntry("Multi Ball", -1f);
                 break;
-
             case PowerUpType.BulldozerBall:
                 // Ball.cs disables bulldozer mode automatically on top-wall hit
                 ballManager.SetBulldozerMode(true);
-                uiManager?.AddPowerupEntry("Bulldozer", -1f);
                 break;
         }
 
